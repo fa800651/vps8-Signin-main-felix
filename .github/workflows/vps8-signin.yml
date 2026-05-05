@@ -3,7 +3,7 @@ name: VPS8-Signin
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 1 * * *'   # 每天 UTC 01:00（北京时间 09:00）
+    - cron: 0 1 * * *'   # 每天 UTC 01:00（北京时间 09:00）
 
 jobs:
   signin:
@@ -25,13 +25,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: 🗂️ 缓存 Hash 破解模块
-        id: cache-captcha-solver
-        uses: actions/cache@v4
-        with:
-          path: captcha_solver
-          key: captcha-solver-chromium-latest-v1
-
       - name: 🛡️ 启动 GOST 代理转发
         if: ${{ env.GOST_PROXY != '' }}
         env:
@@ -52,25 +45,17 @@ jobs:
       - name: 🛠️ 安装系统依赖
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y google-chrome-stable xvfb
+          sudo apt-get install -y \
+            google-chrome-stable \
+            xvfb \
+            x11-utils \
+            xdotool \
+            scrot
 
       - name: 🐍 安装 Python 依赖
-        run: pip install seleniumbase
-
-      - name: 🔧 安装 ChromeDriver
-        run: seleniumbase install chromedriver
-
-      - name: 🧩 初始化浏览器环境
-        if: steps.cache-captcha-solver.outputs.cache-hit != 'true'
-        env:
-          SOLVER_URL: ${{ secrets.SOLVER_URL }}
         run: |
-          wget -q "$SOLVER_URL" -O solver.zip
-          unzip solver.zip -d solver_raw
-          MANIFEST=$(find solver_raw -name "manifest.json" | head -1)
-          mkdir -p captcha_solver
-          cp -r "$(dirname $MANIFEST)/." captcha_solver/
-          rm -rf solver_raw solver.zip
+          pip install seleniumbase
+          seleniumbase install chromedriver
 
       - name: 🚀 运行签到脚本
         env:
